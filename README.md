@@ -1,61 +1,128 @@
-API Gateway & Authentication Service
+# algocode-gateway
 
+API Gateway and Authentication Service for the [AlgoCode](https://github.com/Dhruv7850) online judge platform. Acts as the single entry point for all client traffic — handles routing, user authentication, and role-based access control across the microservices architecture.
 
-This repository contains the API Gateway and Authentication Service for a microservices-based architecture. Built with Node.js and Express, it handles user registration, authentication (JWT), and role-based access control (RBAC).
+---
 
-Features
-User Management: Complete signup and signin functionality with encrypted passwords.
+## Overview
 
-Authentication: Secure authentication using JSON Web Tokens (JWT).
+In the AlgoCode system, every request from the client hits this service first. It validates identity, enforces permissions, and routes traffic to the appropriate downstream service (problem service, judge engine, notification service). No downstream service is exposed directly.
 
-Authorization (RBAC): Role-based access control allowing specific permissions for roles like ADMIN, CUSTOMER, and FLIGHT_COMPANY.
+```
+Client → algocode-gateway → algocode-problems
+                          → algocode-judge
+                          → algocode-notifications
+```
 
-Middleware Protection: Request validation and authentication checks for protected routes.
+---
 
-Database Integration: Uses Sequelize ORM with MySQL for managing users and roles.
+## Features
 
-Structured Error Handling: Centralized error management using custom AppError classes.
+- **JWT Authentication** — Stateless auth using signed JSON Web Tokens; no session storage required
+- **Role-Based Access Control (RBAC)** — Three roles: `ADMIN`, `CUSTOMER`, and `FLIGHT_COMPANY`, each with distinct route permissions
+- **User Management** — Full signup and signin flow with bcrypt password hashing
+- **Request Validation Middleware** — Guards protected routes before forwarding to downstream services
+- **Centralized Error Handling** — Custom `AppError` class ensures consistent error responses across all routes
+- **Structured Logging** — Winston logger for request tracing and error diagnostics
 
-Project Structure
-The project follows a modular architecture for scalability and maintainability:
+---
 
-src/config: Environment and server configurations, including Logger setup.
+## Tech Stack
 
-src/controllers: Handles incoming HTTP requests and interacts with services.
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | MySQL |
+| ORM | Sequelize |
+| Auth | JSON Web Tokens (jsonwebtoken) |
+| Password Hashing | bcrypt |
+| Logging | Winston |
 
-src/middlewares: Intercepts requests for validation and authentication (e.g., checking if a user is an admin).
+---
 
-src/models: Sequelize models for User, Role, and the junction table User_Role.
+## Project Structure
 
-src/repositories: Encapsulates database logic using the Repository Pattern.
+```
+src/
+├── config/         # Environment config, server setup, Winston logger
+├── controllers/    # Request handlers — delegates to service layer
+├── middlewares/    # Auth checks, request validation, admin guards
+├── models/         # Sequelize models: User, Role, User_Role (junction)
+├── repositories/   # Database access layer — Repository Pattern
+├── routes/         # Versioned API routes (v1)
+├── services/       # Business logic — password hashing, token generation
+└── utils/          # Shared helpers, enums, response formatters
+```
 
-src/routes: API endpoint definitions categorized by version (V1).
+---
 
-src/services: Contains business logic, such as password hashing and token generation.
+## Getting Started
 
-src/utils: Common helpers, enums, and success/error response formatters.
+### Prerequisites
 
-Tech Stack
-Runtime: Node.js
+- Node.js v18+
+- MySQL running locally or via Docker
 
-Framework: Express.js
+### Installation
 
-Database: MySQL
+```bash
+git clone https://github.com/Dhruv7850/algocode-gateway.git
+cd algocode-gateway
+npm install
+```
 
-ORM: Sequelize
+### Environment Variables
 
-Security: bcrypt (hashing), jsonwebtoken (JWT)
+Create a `.env` file in the root:
 
-Logging: Winston
+```env
+PORT=3000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=yourpassword
+DB_NAME=algocode_auth
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRY=24h
+```
 
-Installation
-Clone the repository:
+### Run
 
+```bash
+# Development
+npm run dev
 
-`git clone <repository-url>`
-`cd API_Gateway`
+# Production
+npm start
+```
 
-Install dependencies:
+---
 
-`npm install`
+## API Reference
 
+### Auth Routes — `POST /api/v1/user`
+
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| POST | `/signup` | Register a new user | No |
+| POST | `/signin` | Login and receive JWT | No |
+
+### Role Routes — `POST /api/v1/role` *(Admin only)*
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/` | Create a new role |
+| POST | `/addRoleToUser` | Assign a role to a user |
+
+---
+
+## Part of the AlgoCode Platform
+
+This service is one of four in the AlgoCode microservices system:
+
+| Service | Description |
+|---|---|
+| [algocode-gateway](https://github.com/Dhruv7850/algocode-gateway) | ← You are here — auth and routing |
+| [algocode-judge](https://github.com/Dhruv7850/algocode-judge) | Sandboxed code execution engine |
+| [algocode-problems](https://github.com/Dhruv7850/algocode-problems) | Problem and test case management |
+| [algocode-notifications](https://github.com/Dhruv7850/algocode-notifications) | Async event-driven notification service |
